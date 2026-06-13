@@ -543,10 +543,12 @@ export default function LandingPage() {
               {
                 text: "Seruu eyy mabar di DaySmash, makin sukses terus dakss!!, letsgo minggu depan main deui atuh!",
                 author: "Abdul",
+                role: "Member Reguler",
               },
               {
                 text: "Ternyata ada mabar murah pisan ey wkwk, masuk budget mahasiswa, tempatnya juga enakeun buat latihan, semoga makin rame dan makin banyak yang gabung yaa!",
                 author: "Itis",
+                role: "Member Mahasiswa",
               },
             ].map((t, idx) => (
               <Card
