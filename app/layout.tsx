@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   title: "DaySmash - Asisten Penjadwalan Badminton Mabar",
   description: "Aplikasi asisten penjadwalan ganda badminton komunitas mabar, offline ready.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/daysmash.webp",
+    shortcut: "/daysmash.webp",
+    apple: "/daysmash.webp",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

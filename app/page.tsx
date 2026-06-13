@@ -335,7 +335,7 @@ export default function Home() {
         <main className="max-w-4xl w-full mx-auto my-auto py-8 space-y-8 relative z-10">
           <div className="text-center space-y-3">
             <div className="bg-primary/10 border border-primary/20 px-3 py-1 rounded-full w-fit mx-auto text-primary text-xs font-bold tracking-widest uppercase flex items-center gap-1.5">
-              <Trophy className="w-3.5 h-3.5" />
+              <img src="/daysmash.webp" alt="DaySmash" className="w-4.5 h-4.5 object-contain rounded-full" />
               DaySmash Scheduler
             </div>
             <h1 className="text-4xl md:text-5xl font-serif text-foreground tracking-tight font-light">
@@ -476,8 +476,8 @@ export default function Home() {
           <header className="max-w-7xl w-full mx-auto mb-6 flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
             <div className="flex flex-col items-center md:items-start text-center md:text-left gap-1.5">
               <div className="flex items-center gap-2.5">
-                <div className="bg-primary p-1.5 rounded-xl text-white shadow-md shadow-primary/20">
-                  <Trophy className="w-5 h-5" />
+                <div className="bg-muted p-0.5 rounded-xl border border-border flex items-center justify-center overflow-hidden w-9 h-9 shadow-sm">
+                  <img src="/daysmash.webp" alt="DaySmash" className="w-full h-full object-contain rounded-lg" />
                 </div>
                 <h1 className="text-2xl font-serif text-foreground tracking-tight font-light">
                   DaySmash
