@@ -16,6 +16,7 @@ export interface Match {
   teamB: string[]; // [player3Id, player4Id]
   scoreA?: number; // Score Team A
   scoreB?: number; // Score Team B
+  kokCount: number; // Shuttlecock used in this match (default 0)
   isManual: boolean; // True if manually entered, false if from recommendation
 }
 
