@@ -1,7 +1,13 @@
 import React from "react";
 import { Player, Match } from "@/lib/types";
 import { calculatePlayerStats } from "@/lib/matchmaker";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Star, Award, Shield, User, Clock, HeartHandshake } from "lucide-react";
 
@@ -11,19 +17,38 @@ interface PlayerStatsProps {
   currentMatchId: number;
 }
 
-export default function PlayerStats({ players, matches, currentMatchId }: PlayerStatsProps) {
+export default function PlayerStats({
+  players,
+  matches,
+  currentMatchId,
+}: PlayerStatsProps) {
   const stats = calculatePlayerStats(players, matches, currentMatchId);
 
   // Helper to map wait duration to status badge
   const renderWaitBadge = (wait: number, active: boolean) => {
     if (!active) {
-      return <Badge variant="secondary" className="bg-slate-800 text-slate-500 border-slate-700 text-[10px]">Istirahat (Pulang)</Badge>;
+      return (
+        <Badge
+          variant="secondary"
+          className="bg-slate-800 text-slate-500 border-slate-700 text-[10px]"
+        >
+          Istirahat (Pulang)
+        </Badge>
+      );
     }
     if (wait === 0) {
-      return <Badge className="bg-emerald-500 hover:bg-emerald-500 text-slate-950 font-bold text-[10px]">Baru Main</Badge>;
+      return (
+        <Badge className="bg-primary hover:bg-primary text-slate-950 font-bold text-[10px]">
+          Baru Main
+        </Badge>
+      );
     }
     if (wait === 1) {
-      return <Badge className="bg-slate-700 hover:bg-slate-700 text-slate-300 border-slate-600 text-[10px]">Menunggu 1</Badge>;
+      return (
+        <Badge className="bg-slate-700 hover:bg-slate-700 text-slate-300 border-slate-600 text-[10px]">
+          Menunggu 1
+        </Badge>
+      );
     }
     return (
       <Badge className="bg-amber-500 hover:bg-amber-500 text-slate-950 font-bold animate-pulse text-[10px]">
@@ -35,7 +60,11 @@ export default function PlayerStats({ players, matches, currentMatchId }: Player
   // Helper to render stars for level
   const renderLevelStars = (level: number | null) => {
     if (level === null || level === undefined) {
-      return <span className="text-[10px] text-slate-500 italic font-medium">Belum tahu</span>;
+      return (
+        <span className="text-[10px] text-slate-500 italic font-medium">
+          Belum tahu
+        </span>
+      );
     }
     return (
       <div className="flex items-center gap-0.5">
@@ -59,13 +88,14 @@ export default function PlayerStats({ players, matches, currentMatchId }: Player
   };
 
   return (
-    <Card className="border-emerald-800/20 bg-slate-900/40 backdrop-blur-md text-white shadow-xl">
+    <Card className="border-primary/20 bg-slate-900/40 backdrop-blur-md text-white shadow-xl">
       <CardHeader className="border-b border-slate-800 bg-slate-900/40 py-4 px-6">
-        <CardTitle className="text-lg font-serif font-light tracking-wide text-emerald-400">
+        <CardTitle className="text-lg font-serif font-light tracking-wide text-primary">
           Dashboard Statistik Pemain
         </CardTitle>
         <CardDescription className="text-slate-400 text-xs mt-1">
-          Analisis rotasi pemain, jumlah partner/lawan unik, dan performa bermain.
+          Analisis rotasi pemain, jumlah partner/lawan unik, dan performa
+          bermain.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6">
@@ -79,7 +109,7 @@ export default function PlayerStats({ players, matches, currentMatchId }: Player
               (m) =>
                 (m.teamA.includes(player.id) || m.teamB.includes(player.id)) &&
                 m.scoreA !== undefined &&
-                m.scoreB !== undefined
+                m.scoreB !== undefined,
             ).length;
             const losses = completedMatchesCount - pStats.wins;
             const winRatePercent =
@@ -92,7 +122,7 @@ export default function PlayerStats({ players, matches, currentMatchId }: Player
                 key={player.id}
                 className={`border bg-slate-950/45 hover:bg-slate-900/60 transition-all duration-150 rounded-xl overflow-hidden ${
                   player.isJoker
-                    ? "border-slate-850 bg-slate-950/65 shadow-md shadow-emerald-950/10"
+                    ? "border-slate-850 bg-slate-950/65 shadow-md shadow-primary/10"
                     : "border-slate-800/80"
                 } ${!player.active ? "opacity-55" : ""}`}
               >
@@ -102,28 +132,36 @@ export default function PlayerStats({ players, matches, currentMatchId }: Player
                     <div>
                       <h4 className="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
                         {player.isJoker ? (
-                          <Award className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <Award className="w-4 h-4 text-primary shrink-0" />
                         ) : (
                           <User className="w-4 h-4 text-slate-400 shrink-0" />
                         )}
                         {player.name || `Pemain`}
                       </h4>
-                      <div className="mt-1">{renderLevelStars(player.level)}</div>
+                      <div className="mt-1">
+                        {renderLevelStars(player.level)}
+                      </div>
                     </div>
-                    <div>{renderWaitBadge(pStats.waitDuration, player.active)}</div>
+                    <div>
+                      {renderWaitBadge(pStats.waitDuration, player.active)}
+                    </div>
                   </div>
 
                   {/* Stats Grid */}
                   <div className="grid grid-cols-2 gap-2 text-[10px] pt-1">
                     <div className="bg-slate-900/40 p-2 rounded-lg border border-slate-900">
-                      <span className="text-slate-500 block">Total Bermain</span>
+                      <span className="text-slate-500 block">
+                        Total Bermain
+                      </span>
                       <span className="text-xs font-bold text-slate-200 mt-0.5">
                         {pStats.playCount} Match
                       </span>
                     </div>
 
                     <div className="bg-slate-900/40 p-2 rounded-lg border border-slate-900">
-                      <span className="text-slate-500 block">Match Terakhir</span>
+                      <span className="text-slate-500 block">
+                        Match Terakhir
+                      </span>
                       <span className="text-xs font-bold text-slate-200 mt-0.5">
                         {pStats.lastPlayedMatch > 0
                           ? `Match ${getMatchLabel(pStats.lastPlayedMatch)}`
@@ -134,7 +172,7 @@ export default function PlayerStats({ players, matches, currentMatchId }: Player
                     <div className="bg-slate-900/40 p-2 rounded-lg border border-slate-900">
                       <span className="text-slate-500 block">Partner Unik</span>
                       <span className="text-xs font-bold text-slate-200 mt-0.5 flex items-center gap-1">
-                        <HeartHandshake className="w-3.5 h-3.5 text-emerald-500/80 shrink-0" />
+                        <HeartHandshake className="w-3.5 h-3.5 text-primary/80 shrink-0" />
                         {pStats.partnerIds.size} orang
                       </span>
                     </div>
@@ -150,10 +188,11 @@ export default function PlayerStats({ players, matches, currentMatchId }: Player
 
                   {/* Win record details if available */}
                   {completedMatchesCount > 0 && (
-                    <div className="bg-emerald-950/10 border border-emerald-900/20 py-1.5 px-2.5 rounded-lg flex items-center justify-between text-[9px] font-semibold text-slate-400">
+                    <div className="bg-primary/10 border border-primary/20 py-1.5 px-2.5 rounded-lg flex items-center justify-between text-[9px] font-semibold text-slate-400">
                       <span>Record Mabar</span>
-                      <span className="text-emerald-400">
-                        {pStats.wins} M - {losses} K ({winRatePercent}% Win Rate)
+                      <span className="text-primary">
+                        {pStats.wins} M - {losses} K ({winRatePercent}% Win
+                        Rate)
                       </span>
                     </div>
                   )}

@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 import { Player, Match } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit, Save, Calendar, Check } from "lucide-react";
@@ -21,7 +27,9 @@ export default function MatchHistory({
   onDeleteMatch,
   onEditMatch,
 }: MatchHistoryProps) {
-  const [editingScores, setEditingScores] = useState<Record<number, { scoreA: string; scoreB: string }>>({});
+  const [editingScores, setEditingScores] = useState<
+    Record<number, { scoreA: string; scoreB: string }>
+  >({});
 
   // Get player name by ID
   const getPlayerName = (id: string) => {
@@ -36,7 +44,11 @@ export default function MatchHistory({
   };
 
   // Init score editing state
-  const startEditingScore = (matchId: number, currentScoreA?: number, currentScoreB?: number) => {
+  const startEditingScore = (
+    matchId: number,
+    currentScoreA?: number,
+    currentScoreB?: number,
+  ) => {
     setEditingScores((prev) => ({
       ...prev,
       [matchId]: {
@@ -72,12 +84,15 @@ export default function MatchHistory({
 
   if (matches.length === 0) {
     return (
-      <Card className="border-emerald-800/20 bg-slate-900/40 backdrop-blur-md text-white shadow-xl">
+      <Card className="border-primary/20 bg-slate-900/40 backdrop-blur-md text-white shadow-xl">
         <CardContent className="p-6 text-center py-10">
           <Calendar className="w-8 h-8 text-slate-500 mx-auto mb-2 opacity-50" />
-          <h3 className="text-sm font-semibold text-slate-300">Belum Ada Riwayat Pertandingan</h3>
+          <h3 className="text-sm font-semibold text-slate-300">
+            Belum Ada Riwayat Pertandingan
+          </h3>
           <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-            Pertandingan yang dijadwalkan akan muncul di sini. Admin dapat mencatat skor hasil mabar.
+            Pertandingan yang dijadwalkan akan muncul di sini. Admin dapat
+            mencatat skor hasil mabar.
           </p>
         </CardContent>
       </Card>
@@ -88,13 +103,14 @@ export default function MatchHistory({
   const sortedMatches = [...matches].sort((a, b) => a.id - b.id);
 
   return (
-    <Card className="border-emerald-800/20 bg-slate-900/40 backdrop-blur-md text-white shadow-xl">
+    <Card className="border-primary/20 bg-slate-900/40 backdrop-blur-md text-white shadow-xl">
       <CardHeader className="border-b border-slate-800 bg-slate-900/40 py-4 px-6">
-        <CardTitle className="text-lg font-serif font-light tracking-wide text-emerald-400">
+        <CardTitle className="text-lg font-serif font-light tracking-wide text-primary">
           Riwayat Pertandingan
         </CardTitle>
         <CardDescription className="text-slate-400 text-xs mt-1">
-          Keterangan: M1–M3 adalah pertandingan manual awal. M4 dst direkomendasikan sistem.
+          Keterangan: M1–M3 adalah pertandingan manual awal. M4 dst
+          direkomendasikan sistem.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6 divide-y divide-slate-800/60 max-h-[500px] overflow-y-auto pr-2">
@@ -102,7 +118,7 @@ export default function MatchHistory({
           const isEditing = editingScores[m.id] !== undefined;
           const editState = editingScores[m.id];
           const hasScore = m.scoreA !== undefined && m.scoreB !== undefined;
-          
+
           // Determine winner
           const teamAWon = hasScore && m.scoreA! > m.scoreB!;
           const teamBWon = hasScore && m.scoreB! > m.scoreA!;
@@ -115,16 +131,24 @@ export default function MatchHistory({
           };
 
           return (
-            <div key={m.id} className="py-4 first:pt-0 last:pb-0 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div
+              key={m.id}
+              className="py-4 first:pt-0 last:pb-0 flex flex-col md:flex-row items-center justify-between gap-4"
+            >
               {/* Match Indicator */}
               <div className="flex items-center gap-3 w-full md:w-auto">
                 <div className="flex flex-col items-center justify-center bg-slate-800 border border-slate-700/60 w-11 h-11 rounded-xl shrink-0">
-                  <span className="text-[10px] font-bold text-slate-400 leading-none uppercase">Match</span>
-                  <span className="text-sm font-bold text-emerald-400 leading-none mt-1">{getMatchLabel(m.id)}</span>
+                  <span className="text-[10px] font-bold text-slate-400 leading-none uppercase">
+                    Match
+                  </span>
+                  <span className="text-sm font-bold text-primary leading-none mt-1">
+                    {getMatchLabel(m.id)}
+                  </span>
                 </div>
                 <div className="flex-1">
                   <span className="text-slate-500 font-semibold text-[10px] block">
-                    {m.isManual ? "MANUAL INPUT" : "ALGORITHM GENERATED"} (M{m.id})
+                    {m.isManual ? "MANUAL INPUT" : "ALGORITHM GENERATED"} (M
+                    {m.id})
                   </span>
                   <div className="text-slate-300 text-xs font-semibold mt-0.5">
                     {m.teamA.map((id) => getPlayerName(id)).join(" + ")}
@@ -149,7 +173,7 @@ export default function MatchHistory({
                         }))
                       }
                       placeholder="TIM A"
-                      className="w-14 h-8 text-center bg-slate-950/60 border-slate-800 text-xs font-bold text-emerald-400"
+                      className="w-14 h-8 text-center bg-slate-950/60 border-slate-800 text-xs font-bold text-primary"
                     />
                     <span className="text-slate-500 font-bold">:</span>
                     <Input
@@ -167,7 +191,7 @@ export default function MatchHistory({
                     <Button
                       size="sm"
                       onClick={() => handleSaveScore(m.id)}
-                      className="h-8 bg-emerald-600 hover:bg-emerald-700 text-slate-950 font-bold px-2 rounded-lg"
+                      className="h-8 bg-primary hover:bg-[#15803D] text-slate-950 font-bold px-2 rounded-lg"
                     >
                       <Save className="w-3.5 h-3.5" />
                     </Button>
@@ -177,15 +201,23 @@ export default function MatchHistory({
                   <div className="flex items-center gap-3">
                     {hasScore ? (
                       <div className="flex items-center gap-1.5 bg-slate-950/50 border border-slate-800/80 py-1 px-2.5 rounded-lg text-xs">
-                        <span className={`font-bold ${teamAWon ? "text-emerald-400" : "text-slate-400"}`}>
+                        <span
+                          className={`font-bold ${teamAWon ? "text-primary" : "text-slate-400"}`}
+                        >
                           {m.scoreA}
                         </span>
                         <span className="text-slate-600 font-bold">:</span>
-                        <span className={`font-bold ${teamBWon ? "text-red-400" : "text-slate-400"}`}>
+                        <span
+                          className={`font-bold ${teamBWon ? "text-red-400" : "text-slate-400"}`}
+                        >
                           {m.scoreB}
                         </span>
-                        {teamAWon && <Check className="w-3 h-3 text-emerald-400 ml-1 shrink-0" />}
-                        {teamBWon && <Check className="w-3 h-3 text-red-400 ml-1 shrink-0" />}
+                        {teamAWon && (
+                          <Check className="w-3 h-3 text-primary ml-1 shrink-0" />
+                        )}
+                        {teamBWon && (
+                          <Check className="w-3 h-3 text-red-400 ml-1 shrink-0" />
+                        )}
                       </div>
                     ) : (
                       <Button
@@ -202,7 +234,9 @@ export default function MatchHistory({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => startEditingScore(m.id, m.scoreA, m.scoreB)}
+                        onClick={() =>
+                          startEditingScore(m.id, m.scoreA, m.scoreB)
+                        }
                         className="h-7 w-7 p-0 text-slate-400 hover:text-slate-200"
                         title="Edit Skor"
                       >

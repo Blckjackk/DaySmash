@@ -9,7 +9,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 interface MatchEditDialogProps {
@@ -83,7 +89,7 @@ export default function MatchEditDialog({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-emerald-400 font-bold text-lg">
+          <DialogTitle className="text-primary font-bold text-lg">
             Edit Pertandingan M{matchId}
           </DialogTitle>
           <DialogDescription className="text-slate-400 text-xs">
@@ -95,8 +101,10 @@ export default function MatchEditDialog({
           <div className="grid grid-cols-2 gap-4">
             {/* Team A */}
             <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-800/80 space-y-2.5">
-              <span className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase block">TIM A</span>
-              
+              <span className="text-[10px] font-bold text-primary tracking-wider uppercase block">
+                TIM A
+              </span>
+
               <Select value={a1} onValueChange={setA1}>
                 <SelectTrigger className="w-full bg-slate-900 border-slate-800 h-8 text-xs">
                   <SelectValue placeholder="Pemain 1" />
@@ -126,8 +134,10 @@ export default function MatchEditDialog({
 
             {/* Team B */}
             <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-800/80 space-y-2.5">
-              <span className="text-[10px] font-bold text-red-400 tracking-wider uppercase block">TIM B</span>
-              
+              <span className="text-[10px] font-bold text-red-400 tracking-wider uppercase block">
+                TIM B
+              </span>
+
               <Select value={b1} onValueChange={setB1}>
                 <SelectTrigger className="w-full bg-slate-900 border-slate-800 h-8 text-xs">
                   <SelectValue placeholder="Pemain 1" />
@@ -168,7 +178,7 @@ export default function MatchEditDialog({
           <Button
             onClick={handleSave}
             disabled={!a1 || !a2 || !b1 || !b2}
-            className="bg-emerald-600 hover:bg-emerald-700 text-slate-950 font-bold text-xs"
+            className="bg-primary hover:bg-[#15803D] text-slate-950 font-bold text-xs"
           >
             Simpan Perubahan
           </Button>
