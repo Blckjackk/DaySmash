@@ -172,16 +172,23 @@ export default function Home() {
 
   // Schedule a new match
   const handleAddMatch = (newMatch: Match) => {
-    setMatches((prev) => [...prev, newMatch]);
+    setMatches((prev) => [...prev, { ...newMatch, kokCount: newMatch.kokCount ?? 0 }]);
   };
 
   // Schedule multiple matches at once (generate-all)
   const handleAddMultipleMatches = (newMatches: Match[]) => {
     setMatches((prev) => {
       const startId = prev.length + 1;
-      const renumbered = newMatches.map((m, i) => ({ ...m, id: startId + i }));
+      const renumbered = newMatches.map((m, i) => ({ ...m, id: startId + i, kokCount: m.kokCount ?? 0 }));
       return [...prev, ...renumbered];
     });
+  };
+
+  // Update kok count for a specific match (shared across all 4 players in that match)
+  const handleUpdateMatchKok = (matchId: number, kokCount: number) => {
+    setMatches((prev) =>
+      prev.map((m) => (m.id === matchId ? { ...m, kokCount } : m))
+    );
   };
 
   // Update player properties (inline editing in spreadsheet)
@@ -294,10 +301,17 @@ export default function Home() {
 
   const currentMatchId = matches.length + 1;
   const totalPlayersActive = players.filter((p) => p.active).length;
+  // Total kok = sum of all match kokCounts (each match uses some shuttlecocks)
+  const totalKoks = matches.reduce((sum, m) => sum + (m.kokCount ?? 0), 0);
+  // Total revenue = sum of all players' paidAmount + their share of kok cost
   const totalRevenue = players
     .filter((p) => p.paidStatus)
-    .reduce((sum, p) => sum + p.paidAmount + (p.kokCount * 2000), 0);
-  const totalKoks = players.reduce((sum, p) => sum + p.kokCount, 0);
+    .reduce((sum, p) => {
+      const playerKok = matches
+        .filter((m) => m.teamA.includes(p.id) || m.teamB.includes(p.id))
+        .reduce((ks, m) => ks + (m.kokCount ?? 0), 0);
+      return sum + p.paidAmount + playerKok * 2000;
+    }, 0);
 
   if (!isLoaded) {
     return (
@@ -584,6 +598,7 @@ export default function Home() {
                   players={players}
                   matches={matches}
                   onUpdatePlayer={handleUpdatePlayer}
+                  onUpdateMatchKok={handleUpdateMatchKok}
                   onImportState={handleImportStateData}
                   title={title}
                   onEditMatch={handleEditMatch}
