@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import anime from "animejs";
 import {
   Calendar,
   Clock,
@@ -65,73 +66,154 @@ interface ScheduleCard {
   badgeText: string;
 }
 
-interface LeaderboardUser {
-  rank: number;
-  name: string;
-  level: number;
-  points: number;
-  winRate: number;
-  matches: number;
-}
-
 export default function LandingPage() {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
-  const [sortKey, setSortKey] = useState<"points" | "winRate" | "level">(
-    "points",
-  );
-  const [sortAsc, setSortAsc] = useState<boolean>(false);
 
-  // Weekly mabar schedule data
+  // Refs for animations
+  const heroHeadlineRef = useRef<HTMLHeadingElement>(null);
+  const heroCtaRef = useRef<HTMLDivElement>(null);
+  const shuttlecockRef = useRef<HTMLDivElement>(null);
+  const statsSectionRef = useRef<HTMLDivElement>(null);
+  const counterMemberRef = useRef<HTMLSpanElement>(null);
+  const counterTourneyRef = useRef<HTMLSpanElement>(null);
+  const schedulesRef = useRef<HTMLDivElement>(null);
+  const galleryRef = useRef<HTMLDivElement>(null);
+
+  // Weekly mabar schedule data (Updated: Sunday night only)
   const [schedules, setSchedules] = useState<ScheduleCard[]>([
     {
       id: "sch-1",
-      day: "Jumat Malam",
-      time: "19:00 - 21:00 WIB",
-      location: "Smash Arena (Lap. 1, 2, 3 Vinyl)",
+      day: "Minggu Malam",
+      time: "19:00 - 22:00 WIB",
+      location: "Gor Abadi Cilimus - Lapangan 3",
       totalSlots: 12,
-      filledSlots: 11,
-      status: "limited",
-      badgeText: "Hampir Penuh",
+      filledSlots: 8,
+      status: "available",
+      badgeText: "Tersedia",
     },
   ]);
 
-  // Leaderboard mockup data
-  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([
-    {
-      rank: 1,
-      name: "Fadhil",
-      level: 5,
-      points: 950,
-      winRate: 85,
-      matches: 20,
-    },
-    {
-      rank: 2,
-      name: "Rohman",
-      level: 4,
-      points: 880,
-      winRate: 78,
-      matches: 18,
-    },
-    { rank: 3, name: "Alvin", level: 4, points: 840, winRate: 75, matches: 16 },
-    {
-      rank: 4,
-      name: "Dharma",
-      level: 3,
-      points: 720,
-      winRate: 64,
-      matches: 14,
-    },
-    { rank: 5, name: "Budi", level: 3, points: 690, winRate: 62, matches: 15 },
-    {
-      rank: 6,
-      name: "Candra",
-      level: 2,
-      points: 510,
-      winRate: 50,
-      matches: 12,
-    },
-  ]);
+  useEffect(() => {
+    // 1. Hero Animations
+    if (heroHeadlineRef.current) {
+      const text = heroHeadlineRef.current.innerText;
+      heroHeadlineRef.current.innerHTML = text
+        .split(" ")
+        .map((word) => `<span class="inline-block">${word}</span>`)
+        .join(" ");
+
+      anime({
+        targets: heroHeadlineRef.current.querySelectorAll("span"),
+        translateY: [20, 0],
+        opacity: [0, 1],
+        delay: anime.stagger(100),
+        duration: 800,
+        easing: "easeOutExpo",
+      });
+    }
+
+    if (heroCtaRef.current) {
+      anime({
+        targets: heroCtaRef.current,
+        scale: [0.8, 1],
+        opacity: [0, 1],
+        delay: 500,
+        duration: 1000,
+        easing: "easeOutExpo",
+      });
+    }
+
+    if (shuttlecockRef.current) {
+      anime({
+        targets: shuttlecockRef.current,
+        translateY: [-10, 10],
+        direction: "alternate",
+        loop: true,
+        duration: 2500,
+        easing: "easeInOutSine",
+      });
+    }
+
+    // Intersection Observer for viewport triggers
+    const observerOptions = {
+      threshold: 0.2,
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          // 2. Counter Animations
+          if (entry.target === statsSectionRef.current) {
+            const memberObj = { val: 0 };
+            anime({
+              targets: memberObj,
+              val: 150,
+              round: 1,
+              easing: "easeOutExpo",
+              duration: 2000,
+              update: () => {
+                if (counterMemberRef.current)
+                  counterMemberRef.current.innerHTML = memberObj.val.toString();
+              },
+            });
+
+            const tourneyObj = { val: 0 };
+            anime({
+              targets: tourneyObj,
+              val: 8,
+              round: 1,
+              easing: "easeOutExpo",
+              duration: 2000,
+              update: () => {
+                if (counterTourneyRef.current)
+                  counterTourneyRef.current.innerHTML =
+                    tourneyObj.val.toString();
+              },
+            });
+          }
+
+          // 3 & 4. Schedule Cards & Progress Bars
+          if (entry.target === schedulesRef.current) {
+            anime({
+              targets: ".schedule-card",
+              translateY: [30, 0],
+              opacity: [0, 1],
+              delay: anime.stagger(100),
+              duration: 800,
+              easing: "easeOutExpo",
+            });
+
+            anime({
+              targets: ".progress-bar-fill",
+              width: (el: HTMLElement) => el.getAttribute("data-width") + "%",
+              duration: 1000,
+              easing: "easeInOutQuad",
+            });
+          }
+
+          // 6. Gallery Grid
+          if (entry.target === galleryRef.current) {
+            anime({
+              targets: ".gallery-item",
+              scale: [0.9, 1],
+              opacity: [0, 1],
+              delay: anime.stagger(100),
+              duration: 800,
+              easing: "easeOutExpo",
+            });
+          }
+
+          observer.unobserve(entry.target);
+        }
+      });
+    }, observerOptions);
+
+    if (statsSectionRef.current) observer.observe(statsSectionRef.current);
+    if (schedulesRef.current) observer.observe(schedulesRef.current);
+    if (galleryRef.current) observer.observe(galleryRef.current);
+
+    return () => observer.disconnect();
+  }, []);
 
   // Handle schedule registration click
   const handleRegisterSchedule = (sch: ScheduleCard) => {
@@ -160,23 +242,6 @@ export default function LandingPage() {
   // Toggle FAQ item collapse
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
-  };
-
-  // Sort leaderboard items
-  const handleSort = (key: "points" | "winRate" | "level") => {
-    const asc = sortKey === key ? !sortAsc : false;
-    setSortKey(key);
-    setSortAsc(asc);
-
-    const sorted = [...leaderboard].sort((a, b) => {
-      const valA = a[key];
-      const valB = b[key];
-      return asc ? valA - valB : valB - valA;
-    });
-
-    // Re-assign ranks based on new order
-    const updated = sorted.map((user, idx) => ({ ...user, rank: idx + 1 }));
-    setLeaderboard(updated);
   };
 
   const getBadgeStyle = (status: string) => {
@@ -227,12 +292,6 @@ export default function LandingPage() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/jadwal"
-              className="hidden sm:inline-flex items-center justify-center h-9 px-4 rounded-xl text-xs font-bold bg-secondary border border-border text-foreground hover:bg-secondary/80 transition-colors"
-            >
-              Asisten Penjadwalan
-            </Link>
             <a
               href="https://chat.whatsapp.com/KhGiyMDg79J2LHsOwpfEsj"
               target="_blank"
@@ -256,7 +315,10 @@ export default function LandingPage() {
             <Sparkles className="w-3.5 h-3.5" />
             Official Badminton Mabar Hub
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif text-foreground leading-tight font-extralight tracking-tight max-w-2xl">
+          <h1
+            ref={heroHeadlineRef}
+            className="text-4xl sm:text-5xl md:text-6xl font-serif text-foreground leading-tight font-extralight tracking-tight max-w-2xl"
+          >
             Main, Kompetisi & Temui <br />
             <span className="text-primary font-serif font-bold italic">
               Pecinta Badminton
@@ -268,7 +330,10 @@ export default function LandingPage() {
             bergabung untuk meningkatkan performa tepok bulu Anda!
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
+          <div
+            ref={heroCtaRef}
+            className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2"
+          >
             <a
               href="https://chat.whatsapp.com/KhGiyMDg79J2LHsOwpfEsj"
               target="_blank"
@@ -278,39 +343,21 @@ export default function LandingPage() {
               Gabung Sekarang (WhatsApp)
               <MessageCircle className="w-4 h-4" />
             </a>
-            <Link
-              href="/jadwal"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-secondary border border-border hover:bg-secondary/80 text-foreground font-bold h-11 px-8 rounded-xl text-xs transition-colors"
-            >
-              Asisten Penjadwalan
-              <ArrowRight className="w-4 h-4" />
-            </Link>
           </div>
 
-          {/* Metrics Row */}
-          <div className="pt-8 grid grid-cols-2 gap-6 max-w-md mx-auto lg:mx-0 border-t border-border">
-            <div>
-              <span className="text-2xl sm:text-3xl font-serif font-light text-foreground block">
-                150+
-              </span>
-              <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">
-                Member Aktif
-              </span>
-            </div>
-            <div>
-              <span className="text-2xl sm:text-3xl font-serif font-light text-foreground block">
-                8+
-              </span>
-              <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">
-                Turnamen Sukses
-              </span>
-            </div>
-          </div>
+          {/* Metrics Row (Counter Section) */}
+          <div
+            ref={statsSectionRef}
+            className="pt-8 grid grid-cols-2 gap-6 max-w-md mx-auto lg:mx-0 border-t border-border"
+          ></div>
         </div>
 
         {/* Hero visual court card overlay */}
         <div className="flex-1 w-full max-w-sm lg:max-w-none flex justify-center relative z-10">
-          <div className="relative border-4 border-primary/20 rounded-2xl w-full max-w-[340px] aspect-[4/6] bg-card backdrop-blur-sm shadow-2xl p-4 flex flex-col justify-between overflow-hidden">
+          <div
+            ref={shuttlecockRef}
+            className="relative border-4 border-primary/20 rounded-2xl w-full max-w-[340px] aspect-[4/6] bg-card backdrop-blur-sm shadow-2xl p-4 flex flex-col justify-between overflow-hidden"
+          >
             {/* Badminton court lines */}
             <div className="absolute inset-0 border-b border-primary/10 top-1/2" />
             <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-primary/20 -translate-y-1/2 flex items-center justify-center">
@@ -326,27 +373,15 @@ export default function LandingPage() {
 
             {/* Tim A players visual */}
             <div className="flex justify-around items-center pt-8 relative z-20">
-              <div
-                className="flex flex-col items-center gap-1.5 animate-bounce"
-                style={{ animationDuration: "3s" }}
-              >
+              <div className="flex flex-col items-center gap-1.5">
                 <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-xs font-extrabold shadow-lg border-2 border-white/20">
                   A1
                 </div>
-                <span className="text-[9px] text-primary font-bold bg-background/80 px-1.5 py-0.5 rounded-full border border-border">
-                  Fadhil Lvl 5
-                </span>
               </div>
-              <div
-                className="flex flex-col items-center gap-1.5 animate-bounce"
-                style={{ animationDuration: "3.5s" }}
-              >
+              <div className="flex flex-col items-center gap-1.5">
                 <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-xs font-extrabold shadow-lg border-2 border-white/20">
                   A2
                 </div>
-                <span className="text-[9px] text-primary font-bold bg-background/80 px-1.5 py-0.5 rounded-full border border-border">
-                  Rohman Lvl 4
-                </span>
               </div>
             </div>
 
@@ -356,24 +391,12 @@ export default function LandingPage() {
 
             {/* Tim B players visual */}
             <div className="flex justify-around items-center pb-8 relative z-20">
-              <div
-                className="flex flex-col items-center gap-1.5 animate-bounce"
-                style={{ animationDuration: "4s" }}
-              >
-                <span className="text-[9px] text-primary font-bold bg-background/80 px-1.5 py-0.5 rounded-full border border-border">
-                  Alvin Lvl 4
-                </span>
+              <div className="flex flex-col items-center gap-1.5">
                 <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-xs font-extrabold shadow-lg border-2 border-white/20">
                   B1
                 </div>
               </div>
-              <div
-                className="flex flex-col items-center gap-1.5 animate-bounce"
-                style={{ animationDuration: "4.5s" }}
-              >
-                <span className="text-[9px] text-primary font-bold bg-background/80 px-1.5 py-0.5 rounded-full border border-border">
-                  Dharma Lvl 3
-                </span>
+              <div className="flex flex-col items-center gap-1.5">
                 <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-xs font-extrabold shadow-lg border-2 border-white/20">
                   B2
                 </div>
@@ -383,12 +406,15 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 3. SECTION "JADWAL MAIN MINGGUAN" (SINGLE INFO CARD) */}
+      {/* 3. SECTION "JADWAL MAIN MINGGUAN" */}
       <section
         id="jadwal"
         className="bg-secondary/40 border-y border-border py-20 relative"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+        <div
+          ref={schedulesRef}
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12"
+        >
           <div className="text-center space-y-3">
             <h2 className="text-3xl sm:text-4xl font-serif text-foreground font-light tracking-tight">
               Jadwal Main Mingguan
@@ -398,38 +424,82 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="max-w-2xl mx-auto">
-            <Card className="bg-card border-border p-8 rounded-2xl shadow-sm">
-              <div className="flex items-center gap-4">
-                <Calendar className="w-6 h-6 text-primary" />
-                <div>
-                  <div className="text-lg font-bold text-foreground">Jumat Malam</div>
-                  <div className="text-sm text-muted-foreground">
-                    19:00 - 21:00 WIB — Latihan & Main Bareng
+          <div className="grid grid-cols-1 gap-6 max-w-md mx-auto">
+            {schedules.map((sch) => (
+              <Card
+                key={sch.id}
+                className="schedule-card bg-card border-border p-6 rounded-2xl shadow-sm opacity-0 hover:scale-[1.03] hover:rotate-1 transition-all duration-300"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <Badge className={getBadgeStyle(sch.status)}>
+                    {sch.badgeText}
+                  </Badge>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
+                    <Users className="w-3.5 h-3.5" />
+                    {sch.filledSlots} / {sch.totalSlots} Slot
                   </div>
                 </div>
-              </div>
-              <div className="mt-6 text-xs text-muted-foreground">
-                Tidak ada daftar sesi per-jam. Datang, daftar di kasir, dan ikut
-                rotasi yang diatur oleh asisten penjadwalan di lapangan.
-              </div>
-            </Card>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <Calendar className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-bold text-foreground">
+                        {sch.day}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {sch.time}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    <div className="text-xs text-muted-foreground">
+                      {sch.location}
+                    </div>
+                  </div>
+
+                  {/* Progress Bar Slot */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <span>Keterisian Slot</span>
+                      <span>
+                        {Math.round((sch.filledSlots / sch.totalSlots) * 100)}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                      <div
+                        className="progress-bar-fill h-full bg-primary rounded-full w-0"
+                        data-width={(sch.filledSlots / sch.totalSlots) * 100}
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => handleRegisterSchedule(sch)}
+                    className="w-full bg-primary hover:bg-primary-active text-white text-xs font-bold h-9 rounded-xl"
+                  >
+                    Ikut Sesi Ini
+                  </Button>
+                </div>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Removed Turnamen, Leaderboard, and Member Spotlight per request */}
-
       {/* 6. SECTION "GALERI KOMUNITAS" */}
       <section id="galeri" className="py-20 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+        <div
+          ref={galleryRef}
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12"
+        >
           <div className="text-center space-y-3">
             <h2 className="text-3xl sm:text-4xl font-serif text-foreground font-light tracking-tight">
               Galeri Komunitas
             </h2>
             <p className="text-muted-foreground text-xs sm:text-sm max-w-md mx-auto font-medium">
-              Dokumentasi antusiasme dan kebersamaan di lapangan setiap jumat
-              malam.
+              Dokumentasi antusiasme dan kebersamaan di lapangan setiap sesi
+              mabar.
             </p>
           </div>
 
@@ -437,11 +507,11 @@ export default function LandingPage() {
             {[
               { src: "/foto/IMG_0413.webp", alt: "Sesi Latihan 1" },
               { src: "/foto/IMG_0483.webp", alt: "Sesi Latihan 2" },
-              { src: "/foto/IMG_0633.webp", alt: "Sesi Latihan 3" },
+              { src: "/foto/image.png", alt: "Sesi Latihan 3" },
             ].map((img, i) => (
               <div
                 key={i}
-                className="group relative overflow-hidden bg-card border border-border rounded-2xl aspect-[4/3] cursor-pointer hover:border-primary/20 transition-all shadow-sm"
+                className="gallery-item opacity-0 group relative overflow-hidden bg-card border border-border rounded-2xl aspect-[4/3] cursor-pointer hover:border-primary/20 transition-all shadow-sm"
               >
                 <img
                   src={img.src}
@@ -525,7 +595,7 @@ export default function LandingPage() {
           <div className="max-w-lg mx-auto space-y-6 relative z-10">
             <Heart className="w-12 h-12 text-white mx-auto animate-pulse" />
             <h2 className="text-3xl sm:text-4xl font-serif text-white font-light tracking-tight">
-              Siap Ambil Raketmu Jumat Ini?
+              Siap Ambil Raketmu Minggu Ini?
             </h2>
             <p className="text-primary-foreground/80 text-xs sm:text-sm leading-relaxed font-medium">
               Kami menyambut hangat kedatangan pemain dari segala tingkat level
@@ -542,13 +612,6 @@ export default function LandingPage() {
                 <WhatsAppIcon className="w-4.5 h-4.5" />
                 Gabung WhatsApp Sekarang
               </a>
-              <Link
-                href="/jadwal"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-background/20 border border-white/20 hover:bg-white/30 text-white font-bold h-11 px-8 rounded-xl text-xs transition-colors"
-              >
-                Buka Asisten Penjadwalan
-                <ArrowRight className="w-4 h-4" />
-              </Link>
             </div>
           </div>
         </div>
@@ -605,14 +668,6 @@ export default function LandingPage() {
                 >
                   Galeri
                 </a>
-              </li>
-              <li>
-                <Link
-                  href="/jadwal"
-                  className="hover:text-primary transition-colors"
-                >
-                  Asisten Penjadwalan Match
-                </Link>
               </li>
             </ul>
           </div>
