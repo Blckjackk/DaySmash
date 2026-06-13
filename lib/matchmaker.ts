@@ -29,12 +29,11 @@ export function calculatePlayerStats(players: Player[], matches: Match[], curren
     };
   });
 
-  // Process completed matches (we consider a match completed if it has players)
+  // Process completed matches
   matches.forEach((m) => {
     const playersInMatch = [...m.teamA, ...m.teamB];
     if (playersInMatch.length < 4) return;
 
-    // Track play counts & last played match
     playersInMatch.forEach((pid) => {
       if (stats[pid]) {
         stats[pid].playCount += 1;
@@ -44,7 +43,6 @@ export function calculatePlayerStats(players: Player[], matches: Match[], curren
       }
     });
 
-    // Track partners & opponents
     const [a1, a2] = m.teamA;
     const [b1, b2] = m.teamB;
 
@@ -57,9 +55,6 @@ export function calculatePlayerStats(players: Player[], matches: Match[], curren
       stats[b2].partnerIds.add(b1);
     }
 
-    const teamASet = new Set(m.teamA);
-    const teamBSet = new Set(m.teamB);
-
     m.teamA.forEach((apid) => {
       m.teamB.forEach((bpid) => {
         if (stats[apid]) stats[apid].opponentIds.add(bpid);
@@ -67,32 +62,23 @@ export function calculatePlayerStats(players: Player[], matches: Match[], curren
       });
     });
 
-    // Track wins if scores are input
     if (m.scoreA !== undefined && m.scoreB !== undefined) {
       if (m.scoreA > m.scoreB) {
-        m.teamA.forEach((pid) => {
-          if (stats[pid]) stats[pid].wins += 1;
-        });
+        m.teamA.forEach((pid) => { if (stats[pid]) stats[pid].wins += 1; });
       } else if (m.scoreB > m.scoreA) {
-        m.teamB.forEach((pid) => {
-          if (stats[pid]) stats[pid].wins += 1;
-        });
+        m.teamB.forEach((pid) => { if (stats[pid]) stats[pid].wins += 1; });
       }
     }
   });
 
-  // Calculate wait duration and win rate for each player
   players.forEach((p) => {
     const s = stats[p.id];
     if (!s) return;
-
     if (s.lastPlayedMatch > 0) {
       s.waitDuration = (currentMatchIndex - 1) - s.lastPlayedMatch;
     } else {
-      // If never played, they have waited for all matches played so far
       s.waitDuration = currentMatchIndex - 1;
     }
-
     s.winRate = s.playCount > 0 ? s.wins / s.playCount : 0;
   });
 
@@ -123,7 +109,80 @@ function getPlayerLevel(player: Player): number {
 }
 
 /**
- * Generate match recommendations for match index M
+ * Generate the single best match for a given match index.
+ * Returns the top recommendation only (used for generate-all).
+ */
+function generateBestMatch(
+  players: Player[],
+  matches: Match[],
+  currentMatchIndex: number,
+  targetMatches: number
+): { match: Match | null; warnings: string[] } {
+  const { recommendations, warnings } = generateRecommendations(
+    players,
+    matches,
+    currentMatchIndex,
+    targetMatches
+  );
+  if (recommendations.length === 0) return { match: null, warnings };
+  const best = recommendations[0];
+  return {
+    match: {
+      id: currentMatchIndex,
+      teamA: best.teamA,
+      teamB: best.teamB,
+      isManual: false,
+    },
+    warnings,
+  };
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────
+ * Generate ALL remaining matches from currentMatchIndex to targetMatches.
+ * Each generated match is simulated (added to the "virtual" match history)
+ * so subsequent matches use it as their history base.
+ * Returns an array of all generated Match objects.
+ * ─────────────────────────────────────────────────────────────────────────
+ */
+export function generateAllRemainingMatches(
+  players: Player[],
+  matches: Match[],
+  currentMatchIndex: number,
+  targetMatches: number
+): { generatedMatches: Match[]; allWarnings: string[] } {
+  const generatedMatches: Match[] = [];
+  const allWarnings: string[] = [];
+
+  // Simulate match history, starting from real matches
+  let simulatedMatches = [...matches];
+
+  for (let idx = currentMatchIndex; idx <= targetMatches; idx++) {
+    const { match, warnings } = generateBestMatch(
+      players,
+      simulatedMatches,
+      idx,
+      targetMatches
+    );
+
+    if (warnings.length > 0) {
+      allWarnings.push(...warnings.map((w) => `M${idx}: ${w}`));
+    }
+
+    if (!match) {
+      allWarnings.push(`M${idx}: Tidak bisa generate — tidak cukup pemain eligible.`);
+      break;
+    }
+
+    generatedMatches.push(match);
+    simulatedMatches = [...simulatedMatches, match];
+  }
+
+  return { generatedMatches, allWarnings };
+}
+
+/**
+ * Generate match recommendations for match index M (returns top 3)
  */
 export function generateRecommendations(
   players: Player[],
@@ -133,7 +192,7 @@ export function generateRecommendations(
 ): { recommendations: Recommendation[]; warnings: string[] } {
   const warnings: string[] = [];
   
-  // Find Admin/Joker player (usually isJoker = true, or last player if not flagged)
+  // Find Admin/Joker player
   const adminPlayer = players.find((p) => p.isJoker) || players[11];
   const adminId = adminPlayer?.id;
 
@@ -148,8 +207,7 @@ export function generateRecommendations(
   const isFinalMatch = currentMatchIndex === targetMatches;
 
   if (isFinalMatch && adminPlayer && adminPlayer.active) {
-    // FINAL MATCH RULE: Admin MUST play, along with the 3 top-performing players
-    // Top-performing is sorted by level (descending), then winCount (descending), then winRate (descending), then lowest playCount
+    // FINAL MATCH: Admin plays with the 3 top-performing players
     const sortedPerformers = [...activePlayers].sort((a, b) => {
       const lvlA = getPlayerLevel(a);
       const lvlB = getPlayerLevel(b);
@@ -160,7 +218,7 @@ export function generateRecommendations(
       if (statA && statB) {
         if (statA.wins !== statB.wins) return statB.wins - statA.wins;
         if (statA.winRate !== statB.winRate) return statB.winRate - statA.winRate;
-        return statA.playCount - statB.playCount; // Prefer players with fewer plays as tiebreaker
+        return statA.playCount - statB.playCount;
       }
       return 0;
     });
@@ -176,8 +234,7 @@ export function generateRecommendations(
     return { recommendations: recs, warnings };
   }
 
-  // STANDARD MATCH GENERATION (Matches 4 to N-1)
-  // Ensure we have at least 4 active players
+  // STANDARD MATCH GENERATION
   if (totalActivePlayers < 4) {
     return {
       recommendations: [],
@@ -185,75 +242,60 @@ export function generateRecommendations(
     };
   }
 
-  // 1. Get the list of players who played in the previous match (back-to-back constraint)
-  const lastMatch = matches.find((m) => m.id === currentMatchIndex - 1);
+  // 1. Back-to-back constraint: players from previous match can't play again
+  const lastMatch = matches[matches.length - 1];
   const prevPlayedIds = new Set<string>();
   if (lastMatch) {
     [...lastMatch.teamA, ...lastMatch.teamB].forEach((id) => prevPlayedIds.add(id));
   }
 
-  // Filter out back-to-back players
   let eligiblePlayers = activePlayers.filter((p) => !prevPlayedIds.has(p.id));
 
-  // If we don't have enough players who did not play in the previous match, we have to relax back-to-back
   if (eligiblePlayers.length < 4) {
     warnings.push("Relaksasi batasan bermain berturut-turut karena jumlah pemain terbatas.");
     eligiblePlayers = activePlayers;
   }
 
-  // 2. Hard Constraint: Players who have waited 2 matches MUST play
-  // Wait duration >= 2 means they missed at least the last 2 matches
+  // 2. Hard Constraint: Players who waited 2 matches MUST play
   const mandatoryPlayers = eligiblePlayers.filter((p) => {
     const s = stats[p.id];
     return s && s.waitDuration >= 2;
   });
 
-  let selectedSet: Player[] = [];
   let candidate4PlayerGroups: Player[][] = [];
 
   if (mandatoryPlayers.length > 4) {
     warnings.push(`Ada ${mandatoryPlayers.length} pemain yang sudah menunggu 2 match. Memprioritaskan yang memiliki waktu tunggu terlama.`);
-    
-    // Sort mandatory players by wait time (descending), then play count (ascending)
     const sortedMandatory = [...mandatoryPlayers].sort((a, b) => {
       const waitDiff = (stats[b.id]?.waitDuration || 0) - (stats[a.id]?.waitDuration || 0);
       if (waitDiff !== 0) return waitDiff;
       return (stats[a.id]?.playCount || 0) - (stats[b.id]?.playCount || 0);
     });
-    
-    // Select top 4
     candidate4PlayerGroups = [sortedMandatory.slice(0, 4)];
   } else if (mandatoryPlayers.length === 4) {
-    // Exactly 4 mandatory players
     candidate4PlayerGroups = [mandatoryPlayers];
   } else {
-    // Fewer than 4 mandatory players. We need to choose (4 - mandatoryPlayers.length) from other eligible players
     const kNeeded = 4 - mandatoryPlayers.length;
     const remainingEligible = eligiblePlayers.filter((p) => !mandatoryPlayers.some((mp) => mp.id === p.id));
 
     if (remainingEligible.length < kNeeded) {
-      // Not enough remaining eligible players, fallback to all active players
       warnings.push("Kurang pemain eligible. Melakukan fallback ke seluruh pemain aktif.");
-      const allCombos = getCombinations(activePlayers, 4);
-      candidate4PlayerGroups = allCombos;
+      candidate4PlayerGroups = getCombinations(activePlayers, 4);
     } else {
       const combos = getCombinations(remainingEligible, kNeeded);
       candidate4PlayerGroups = combos.map((combo) => [...mandatoryPlayers, ...combo]);
     }
   }
 
-  // 3. For each group of 4 players, evaluate all 3 possible matchups
+  // 3. Evaluate all possible matchups for each 4-player group
   const allMatchups: Recommendation[] = [];
-
   candidate4PlayerGroups.forEach((group) => {
     const matchups = createMatchupsFor4Players(group, players, matches, stats, currentMatchIndex, false);
     allMatchups.push(...matchups);
   });
 
-  // Sort by score descending
   allMatchups.sort((a, b) => b.score - a.score);
 
-  // Return the top 3 recommendations
   return {
     recommendations: allMatchups.slice(0, 3),
     warnings,
@@ -261,7 +303,8 @@ export function generateRecommendations(
 }
 
 /**
- * Creates and evaluates the 3 possible matchups for a set of 4 players
+ * Creates and scores the 3 possible matchups for a set of 4 players.
+ * Priority: Level balance (A+B ≈ C+D) > partner repeats > opponent repeats > play count fairness
  */
 function createMatchupsFor4Players(
   group: Player[],
@@ -274,7 +317,7 @@ function createMatchupsFor4Players(
   if (group.length !== 4) return [];
   const [A, B, C, D] = group;
 
-  // The 3 possible double match combinations
+  // The 3 possible double-pair combinations
   const pairings = [
     { teamA: [A, B], teamB: [C, D] },
     { teamA: [A, C], teamB: [B, D] },
@@ -284,55 +327,54 @@ function createMatchupsFor4Players(
   return pairings.map((pair, index) => {
     const tA = pair.teamA;
     const tB = pair.teamB;
-
     const tAIds = tA.map((p) => p.id);
     const tBIds = tB.map((p) => p.id);
 
-    // 1. Level Difference
+    // 1. Level balance — HIGHEST priority soft constraint
+    //    Goal: A+B total level ≈ C+D total level (doesn't have to be equal, just close)
     const sumA = tA.reduce((sum, p) => sum + getPlayerLevel(p), 0);
     const sumB = tB.reduce((sum, p) => sum + getPlayerLevel(p), 0);
     const levelDifference = Math.abs(sumA - sumB);
 
     // 2. Partner repeats
-    const partnerRepeats = countPartnerRepeats(tAIds[0], tAIds[1], matches) + 
-                           countPartnerRepeats(tBIds[0], tBIds[1], matches);
+    const partnerRepeats =
+      countPartnerRepeats(tAIds[0], tAIds[1], matches) +
+      countPartnerRepeats(tBIds[0], tBIds[1], matches);
 
     // 3. Opponent repeats
-    const opponentRepeats = 
+    const opponentRepeats =
       countOpponentRepeats(tAIds[0], tBIds[0], matches) +
       countOpponentRepeats(tAIds[0], tBIds[1], matches) +
       countOpponentRepeats(tAIds[1], tBIds[0], matches) +
       countOpponentRepeats(tAIds[1], tBIds[1], matches);
 
-    // 4. Play count distribution (prefer players with lower play counts)
+    // 4. Play count fairness
     const playsSum = group.reduce((sum, p) => sum + (stats[p.id]?.playCount || 0), 0);
-
-    // 5. Waiting time prioritization
     const waitsSum = group.reduce((sum, p) => sum + (stats[p.id]?.waitDuration || 0), 0);
 
-    // Scoring Formula (normalized out of 100)
-    // Starting with 100:
-    // Deduct 15 points per 1.0 of level difference.
-    // Deduct 12 points per repeated partner.
-    // Deduct 3 points per repeated opponent.
-    // Deduct 0.5 points per play of the players.
-    // Add 0.2 points per wait count.
+    // ── Scoring Formula (out of 100) ───────────────────────────────────────
+    // Level balance is the dominant factor.
+    // levelDifference=0   → -0 pts   (perfect balance)
+    // levelDifference=1   → -20 pts  (1 level apart)
+    // levelDifference=2   → -40 pts  (heavily penalized)
+    // Partner repeat      → -12 pts each
+    // Opponent repeat     → -4 pts each (more acceptable than partner)
+    // Play count penalty  → -0.5 pts per total plays (minor fairness)
+    // Wait bonus          → +0.3 pts per wait count (mandatory satisfaction)
     let baseScore = 100;
-    baseScore -= levelDifference * 15;
-    baseScore -= partnerRepeats * 12;
-    baseScore -= opponentRepeats * 3;
+    baseScore -= levelDifference * 20;   // level balance is king
+    baseScore -= partnerRepeats * 12;    // avoid same partner
+    baseScore -= opponentRepeats * 4;    // avoid same opponent (more lenient)
     baseScore -= playsSum * 0.5;
-    baseScore += waitsSum * 0.2;
+    baseScore += waitsSum * 0.3;
 
     const score = Math.max(0, Math.min(100, Math.round(baseScore)));
 
-    // Generate description explanation
-    let explanation = `Selisih level ${levelDifference.toFixed(1)}.`;
+    // Human-readable explanation
+    let explanation = `Selisih level ${levelDifference.toFixed(1)} (Tim A: ${sumA.toFixed(1)} vs Tim B: ${sumB.toFixed(1)}).`;
     if (partnerRepeats > 0) explanation += ` Partner berulang: ${partnerRepeats}x.`;
     if (opponentRepeats > 0) explanation += ` Lawan berulang: ${opponentRepeats}x.`;
-    if (isFinalMatch) {
-      explanation += " Pertandingan Final (Admin bermain).";
-    }
+    if (isFinalMatch) explanation += " 🏆 Pertandingan Final — Admin bermain.";
 
     return {
       id: `${tAIds.join("-")}-vs-${tBIds.join("-")}-${index}`,
@@ -363,7 +405,6 @@ function countOpponentRepeats(p1: string, p2: string, matches: Match[]): number 
     const inTeamA2 = m.teamA.includes(p2);
     const inTeamB1 = m.teamB.includes(p1);
     const inTeamB2 = m.teamB.includes(p2);
-
     if ((inTeamA1 && inTeamB2) || (inTeamB1 && inTeamA2)) {
       count++;
     }

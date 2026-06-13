@@ -90,7 +90,7 @@ export default function MatchHistory({
   return (
     <Card className="border-emerald-800/20 bg-slate-900/40 backdrop-blur-md text-white shadow-xl">
       <CardHeader className="border-b border-slate-800 bg-slate-900/40 py-4 px-6">
-        <CardTitle className="text-lg font-semibold tracking-wide text-emerald-400">
+        <CardTitle className="text-lg font-serif font-light tracking-wide text-emerald-400">
           Riwayat Pertandingan
         </CardTitle>
         <CardDescription className="text-slate-400 text-xs mt-1">
