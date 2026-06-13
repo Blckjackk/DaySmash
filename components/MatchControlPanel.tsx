@@ -83,6 +83,7 @@ export default function MatchControlPanel({
       teamA: rec.teamA,
       teamB: rec.teamB,
       isManual: false,
+      kokCount: 0,
     });
     toast.success(`✅ Match M${currentMatchId} dijadwalkan!`);
   };
@@ -137,6 +138,7 @@ export default function MatchControlPanel({
       teamA: [manualA1, manualA2],
       teamB: [manualB1, manualB2],
       isManual: true,
+      kokCount: 0,
     });
     toast.success(`✅ Match M${currentMatchId} disimpan secara manual!`);
   };

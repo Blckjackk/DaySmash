@@ -132,6 +132,7 @@ function generateBestMatch(
       teamA: best.teamA,
       teamB: best.teamB,
       isManual: false,
+      kokCount: 0,
     },
     warnings,
   };
