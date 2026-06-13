@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   AlertTriangle, Sparkles, Play, Plus, RefreshCw,
-  Trophy, Users, Zap, CheckCircle2, ChevronRight,
+  Trophy, Users, Zap, ChevronRight, ListChecks,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -42,23 +42,23 @@ export default function MatchControlPanel({
   const [warnings, setWarnings] = useState<string[]>([]);
   const [isManualOverride, setIsManualOverride] = useState<boolean>(false);
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  // After generate-all, show result summary
+  const [generatedSummary, setGeneratedSummary] = useState<Match[] | null>(null);
 
-  // Active players list
   const activePlayers = players.filter((p) => p.active);
 
-  // Back-to-back constraint
   const prevMatch = matches[matches.length - 1];
   const prevPlayedIds = prevMatch
     ? new Set([...prevMatch.teamA, ...prevMatch.teamB])
     : new Set<string>();
 
-  // Auto-generate recommendations on match transition
   useEffect(() => {
     setManualA1("");
     setManualA2("");
     setManualB1("");
     setManualB2("");
     setIsManualOverride(false);
+    setGeneratedSummary(null);
 
     if (currentMatchId > 3 && currentMatchId <= targetMatches) {
       const { recommendations: recs, warnings: warns } = generateRecommendations(
@@ -73,9 +73,10 @@ export default function MatchControlPanel({
   }, [currentMatchId, players, matches, targetMatches]);
 
   const isManualPhase = currentMatchId <= 3;
-  const remainingMatchCount = targetMatches - currentMatchId + 1;
+  // How many matches remain from currentMatchId to end (inclusive)
+  const remainingCount = targetMatches - currentMatchId + 1;
 
-  // ── Apply single recommendation ──────────────────────────────────────────
+  // ── Single match ─────────────────────────────────────────────────────────
   const handleSelectRecommendation = (rec: Recommendation) => {
     onAddMatch({
       id: currentMatchId,
@@ -86,7 +87,7 @@ export default function MatchControlPanel({
     toast.success(`✅ Match M${currentMatchId} dijadwalkan!`);
   };
 
-  // ── Generate ALL remaining matches in one click ──────────────────────────
+  // ── GENERATE ALL M(currentMatchId) → M(targetMatches) in one shot ────────
   const handleGenerateAll = () => {
     setIsGeneratingAll(true);
     try {
@@ -98,25 +99,29 @@ export default function MatchControlPanel({
       );
 
       if (generatedMatches.length === 0) {
-        toast.error("Tidak bisa generate — pastikan ada cukup pemain aktif.");
+        toast.error("Tidak bisa generate — pastikan ada minimal 4 pemain aktif.");
+        setIsGeneratingAll(false);
         return;
       }
 
       onAddMultipleMatches(generatedMatches);
+      setGeneratedSummary(generatedMatches);
 
       if (allWarnings.length > 0) {
-        toast.warning(`${generatedMatches.length} match digenerate dengan ${allWarnings.length} catatan. Cek riwayat.`);
+        toast.warning(`${generatedMatches.length} match digenerate dengan ${allWarnings.length} catatan.`);
       } else {
-        toast.success(`🎉 ${generatedMatches.length} match (M${currentMatchId}–M${currentMatchId + generatedMatches.length - 1}) digenerate sekaligus!`);
+        toast.success(
+          `🎉 ${generatedMatches.length} match sekaligus! M${currentMatchId}–M${currentMatchId + generatedMatches.length - 1} sudah terjadwal!`
+        );
       }
-    } catch (e) {
+    } catch {
       toast.error("Terjadi kesalahan saat generate.");
     } finally {
       setIsGeneratingAll(false);
     }
   };
 
-  // ── Manual match submission ──────────────────────────────────────────────
+  // ── Manual match ──────────────────────────────────────────────────────────
   const handleSaveManual = () => {
     if (!manualA1 || !manualA2 || !manualB1 || !manualB2) {
       toast.error("Harap pilih 4 pemain untuk pertandingan ganda.");
@@ -138,12 +143,12 @@ export default function MatchControlPanel({
 
   const getPlayerName = (id: string) => {
     const p = players.find((pl) => pl.id === id);
-    return p ? `${p.name} (Lvl ${p.level ?? "-"})` : "Pemain";
+    return p ? `${p.name} (Lvl ${p.level ?? "-"})` : "?";
   };
 
-  const getPlayerNameShort = (id: string) => {
+  const getShortName = (id: string) => {
     const p = players.find((pl) => pl.id === id);
-    return p ? p.name : "?";
+    return p?.name ?? "?";
   };
 
   const getAvailablePlayersForSelect = (currentSelectVal: string) => {
@@ -160,8 +165,8 @@ export default function MatchControlPanel({
 
   return (
     <div className="space-y-4">
-      {/* ── Header Card ───────────────────────────────────────────────────── */}
       <Card className="border-border bg-card shadow-sm">
+        {/* Header */}
         <CardHeader className="border-b border-border bg-muted/40 py-4 px-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -173,10 +178,9 @@ export default function MatchControlPanel({
                   ? `Fase awal: Input manual M1–M3 berdasarkan urutan kedatangan.`
                   : currentMatchId > targetMatches
                   ? "Semua pertandingan telah dijadwalkan."
-                  : `Fase rekomendasi: Generate M${currentMatchId}–M${targetMatches} otomatis atau satu per satu.`}
+                  : `Fase otomatis: M${currentMatchId}–M${targetMatches} siap digenerate.`}
               </CardDescription>
             </div>
-            {/* Target selector */}
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground whitespace-nowrap">Target:</span>
               <div className="flex bg-muted p-0.5 rounded-lg border border-border gap-0.5">
@@ -201,33 +205,33 @@ export default function MatchControlPanel({
         </CardHeader>
 
         <CardContent className="p-6 space-y-5">
-          {/* Warning Alerts */}
+          {/* Warnings */}
           {warnings.length > 0 && (
-            <Alert className="bg-yellow-50 border-yellow-200 text-yellow-800">
+            <Alert className="bg-yellow-50 border-yellow-200">
               <AlertTriangle className="h-4 w-4 text-yellow-600 shrink-0" />
               <AlertTitle className="text-xs font-bold uppercase tracking-wider text-yellow-700">
-                Pemberitahuan Algoritma
+                Catatan Algoritma
               </AlertTitle>
-              <AlertDescription className="text-xs space-y-1 mt-1 font-medium text-yellow-700">
+              <AlertDescription className="text-xs space-y-0.5 mt-1 text-yellow-700">
                 {warnings.map((w, i) => <div key={i}>• {w}</div>)}
               </AlertDescription>
             </Alert>
           )}
 
-          {/* ── DONE state ─────────────────────────────────────────────────── */}
+          {/* ── DONE ──────────────────────────────────────────────────────── */}
           {currentMatchId > targetMatches ? (
-            <div className="text-center py-10 space-y-4">
+            <div className="text-center py-12 space-y-4">
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
                 <Trophy className="w-8 h-8 text-primary" />
               </div>
               <h3 className="text-base font-semibold text-foreground">Sesi Mabar Selesai! 🎉</h3>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                Seluruh {targetMatches} pertandingan telah dijadwalkan. Lihat statistik di tab Dashboard atau mulai sesi baru.
+                Semua {targetMatches} match sudah terjadwal. Cek tab Riwayat atau Statistik.
               </p>
             </div>
 
           ) : isManualPhase || isManualOverride ? (
-            /* ── MANUAL INPUT ─────────────────────────────────────────────── */
+            /* ── MANUAL INPUT ───────────────────────────────────────────── */
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -241,7 +245,7 @@ export default function MatchControlPanel({
                     onClick={() => setIsManualOverride(false)}
                     className="text-xs text-primary hover:text-[#15803D] p-0 h-auto"
                   >
-                    ← Kembali ke Rekomendasi
+                    ← Kembali ke Generate
                   </Button>
                 )}
               </div>
@@ -302,197 +306,223 @@ export default function MatchControlPanel({
                 className="w-full bg-primary hover:bg-[#15803D] text-white font-bold h-11 tracking-wide text-xs rounded-xl"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Simpan Pertandingan M{currentMatchId}
+                Simpan Match M{currentMatchId}
+              </Button>
+            </div>
+
+          ) : recommendations.length === 0 ? (
+            /* ── NO RECS ───────────────────────────────────────────────── */
+            <div className="text-center py-8 border border-dashed border-border rounded-xl space-y-3">
+              <Sparkles className="w-8 h-8 text-muted-foreground/40 mx-auto" />
+              <h4 className="text-sm font-semibold text-foreground">Rekomendasi Tidak Tersedia</h4>
+              <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                {currentMatchId === targetMatches
+                  ? "Match final — aktifkan Admin Joker untuk bermain bersama top performer."
+                  : "Pastikan ada minimal 4 pemain aktif di spreadsheet."}
+              </p>
+              <Button
+                variant="ghost"
+                onClick={() => setIsManualOverride(true)}
+                className="text-xs text-muted-foreground hover:text-foreground h-9"
+              >
+                Input Manual Saja
               </Button>
             </div>
 
           ) : (
-            /* ── AUTO RECOMMENDATIONS ─────────────────────────────────────── */
-            <div className="space-y-5">
-              {recommendations.length === 0 ? (
-                <div className="text-center py-8 border border-dashed border-border rounded-xl space-y-3">
-                  <Sparkles className="w-8 h-8 text-muted-foreground/40 mx-auto" />
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-semibold text-foreground">Rekomendasi Tidak Tersedia</h4>
-                    <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                      {currentMatchId === targetMatches
-                        ? "Match berikutnya adalah babak FINAL. Aktifkan Admin Joker untuk bermain bersama top performer."
-                        : "Tidak dapat menghitung rekomendasi. Pastikan ada minimal 4 pemain aktif."}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    onClick={() => setIsManualOverride(true)}
-                    className="text-xs text-muted-foreground hover:text-foreground h-9"
-                  >
-                    Input Manual Saja
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  {/* ── 1-CLICK BEST RECOMMENDATION ─────────────────────── */}
-                  <div className="rounded-2xl overflow-hidden border border-primary/20 shadow-sm">
-                    {/* Header */}
-                    <div className="bg-[#0F172A] px-5 py-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-[#84CC16]" />
-                        <span className="text-xs font-bold uppercase tracking-wider text-[#F8FAFC]">
-                          Rekomendasi Terbaik — M{currentMatchId}
-                        </span>
-                      </div>
-                      <span className="text-xs font-bold bg-[#16A34A]/20 text-[#4ADE80] border border-[#16A34A]/30 px-2.5 py-0.5 rounded-full">
-                        Skor {topRec.score}/100
-                      </span>
-                    </div>
+            /* ── AUTO PHASE: GENERATE ALL IS THE HERO ACTION ─────────── */
+            <div className="space-y-4">
 
-                    {/* Matchup visual */}
-                    <div className="bg-[#1E293B] px-5 py-4 grid grid-cols-7 items-center gap-2">
-                      {/* Team A */}
-                      <div className="col-span-3 text-right space-y-0.5">
-                        <span className="block text-[9px] font-bold uppercase tracking-widest text-[#84CC16]">Tim A</span>
-                        {topRec.teamA.map((id) => (
-                          <div key={id} className="text-sm font-semibold text-[#F8FAFC] truncate">
-                            {getPlayerNameShort(id)}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* VS */}
-                      <div className="col-span-1 flex justify-center">
-                        <span className="bg-[#0F172A] text-[#94A3B8] text-[10px] font-bold py-1.5 px-3 rounded-full border border-[#1E293B]">
-                          VS
-                        </span>
-                      </div>
-
-                      {/* Team B */}
-                      <div className="col-span-3 text-left space-y-0.5">
-                        <span className="block text-[9px] font-bold uppercase tracking-widest text-[#F59E0B]">Tim B</span>
-                        {topRec.teamB.map((id) => (
-                          <div key={id} className="text-sm font-semibold text-[#F8FAFC] truncate">
-                            {getPlayerNameShort(id)}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Explanation + action */}
-                    <div className="bg-[#0F172A] px-5 py-3 space-y-3">
-                      <p className="text-[10px] text-[#94A3B8] font-medium">
-                        💡 {topRec.explanation}
-                      </p>
-                      <Button
-                        onClick={() => handleSelectRecommendation(topRec)}
-                        className="w-full bg-[#16A34A] hover:bg-[#15803D] text-white font-bold h-11 text-xs tracking-wider uppercase rounded-xl shadow-lg shadow-green-900/20 flex items-center justify-center gap-2"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                        Jadwalkan M{currentMatchId} — 1 Klik
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* ── GENERATE ALL REMAINING ──────────────────────────── */}
-                  {remainingMatchCount > 1 && (
-                    <div className="rounded-2xl border border-[#06B6D4]/20 bg-gradient-to-r from-cyan-50 to-blue-50 p-4 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-[#06B6D4]" />
-                        <span className="text-sm font-bold text-[#1F2937]">
+              {/* ═══════════════════════════════════════════════════════════
+                  STEP 1 — GENERATE ALL (primary hero action)
+                  Shown whenever there are 2+ matches to go
+              ═══════════════════════════════════════════════════════════ */}
+              {remainingCount >= 1 && (
+                <div className="rounded-2xl overflow-hidden border-2 border-primary/30 shadow-md">
+                  {/* Dark navy top bar */}
+                  <div className="bg-[#0F172A] px-5 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <Zap className="w-4 h-4 text-[#84CC16]" />
+                      <div>
+                        <span className="text-sm font-bold text-[#F8FAFC]">
                           Generate Semua Sekaligus
                         </span>
-                        <Badge className="text-[9px] font-bold bg-[#06B6D4]/10 text-[#06B6D4] border border-[#06B6D4]/20">
-                          {remainingMatchCount} match
-                        </Badge>
+                        <span className="ml-2 text-[10px] font-bold bg-[#16A34A]/20 text-[#4ADE80] border border-[#16A34A]/30 px-2 py-0.5 rounded-full">
+                          M{currentMatchId} → M{targetMatches}
+                        </span>
                       </div>
-                      <p className="text-[11px] text-[#6B7280]">
-                        Generate M{currentMatchId} s.d. M{targetMatches} sekaligus dalam 1 klik. 
-                        Sistem otomatis menyimulasikan rotasi, keseimbangan level, dan aturan tunggu.
-                      </p>
+                    </div>
+                    <Badge className="bg-white/10 text-[#94A3B8] border-0 text-[10px]">
+                      {remainingCount} match
+                    </Badge>
+                  </div>
+
+                  {/* Body */}
+                  <div className="bg-[#1E293B] px-5 py-4 space-y-2">
+                    <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                      Sistem akan otomatis generate <strong className="text-[#F8FAFC]">semua {remainingCount} pertandingan</strong> sekaligus
+                      berdasarkan keseimbangan level, rotasi pemain, dan aturan tunggu — tanpa perlu pencet berkali-kali.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {Array.from({ length: remainingCount }, (_, i) => (
+                        <span
+                          key={i}
+                          className="text-[9px] font-bold bg-[#16A34A]/15 text-[#4ADE80] border border-[#16A34A]/25 px-2 py-0.5 rounded-full"
+                        >
+                          M{currentMatchId + i}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* CTA */}
+                  <div className="bg-[#0F172A] px-5 pb-5 pt-1">
+                    <Button
+                      onClick={handleGenerateAll}
+                      disabled={isGeneratingAll}
+                      className="w-full bg-[#16A34A] hover:bg-[#15803D] text-white font-black h-14 text-sm tracking-widest uppercase rounded-xl shadow-lg shadow-green-900/30 flex items-center justify-center gap-3 disabled:opacity-70"
+                    >
+                      {isGeneratingAll ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Generating semua match...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-5 h-5 fill-current" />
+                          1 KLIK → Generate M{currentMatchId}–M{targetMatches} Semua!
+                          <ChevronRight className="w-5 h-5 ml-auto" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3">
+                <Separator className="flex-1 bg-border" />
+                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider whitespace-nowrap">
+                  atau jadwalkan satu per satu
+                </span>
+                <Separator className="flex-1 bg-border" />
+              </div>
+
+              {/* ═══════════════════════════════════════════════════════════
+                  STEP 2 — Single next match recommendation (secondary)
+              ═══════════════════════════════════════════════════════════ */}
+              {topRec && (
+                <div className="rounded-2xl overflow-hidden border border-border shadow-sm">
+                  {/* Header */}
+                  <div className="bg-muted/60 px-4 py-2.5 flex items-center justify-between border-b border-border">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5 text-primary" />
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Rekomendasi Terbaik — M{currentMatchId} saja
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                      Skor {topRec.score}/100
+                    </span>
+                  </div>
+
+                  {/* Matchup */}
+                  <div className="bg-card px-4 py-3 grid grid-cols-7 items-center gap-2">
+                    <div className="col-span-3 text-right space-y-0.5">
+                      <span className="block text-[9px] font-bold uppercase tracking-widest text-primary">Tim A</span>
+                      {topRec.teamA.map((id) => (
+                        <div key={id} className="text-sm font-semibold text-foreground truncate">{getShortName(id)}</div>
+                      ))}
+                    </div>
+                    <div className="col-span-1 flex justify-center">
+                      <span className="bg-muted text-muted-foreground text-[10px] font-bold py-1.5 px-2.5 rounded-full border border-border">VS</span>
+                    </div>
+                    <div className="col-span-3 text-left space-y-0.5">
+                      <span className="block text-[9px] font-bold uppercase tracking-widest text-[#F59E0B]">Tim B</span>
+                      {topRec.teamB.map((id) => (
+                        <div key={id} className="text-sm font-semibold text-foreground truncate">{getShortName(id)}</div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="bg-muted/30 px-4 py-3 space-y-2 border-t border-border">
+                    <p className="text-[10px] text-muted-foreground">💡 {topRec.explanation}</p>
+                    <Button
+                      onClick={() => handleSelectRecommendation(topRec)}
+                      className="w-full bg-foreground hover:bg-foreground/90 text-background font-bold h-9 text-xs tracking-wider uppercase rounded-lg flex items-center justify-center gap-2"
+                    >
+                      <Play className="w-3 h-3 fill-current" />
+                      Jadwalkan M{currentMatchId} Saja
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Alternatives + override */}
+              {recommendations.length > 1 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                      Alternatif Lain
+                    </span>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => setIsManualOverride(true)}
+                      className="text-xs text-muted-foreground hover:text-foreground p-0 h-auto"
+                    >
+                      Override Manual
+                    </Button>
+                  </div>
+
+                  {recommendations.slice(1).map((rec, i) => (
+                    <div
+                      key={rec.id}
+                      className="bg-card border border-border rounded-xl p-3 flex items-center justify-between gap-3 hover:border-primary/30 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0 space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <Badge className="text-[9px] font-bold bg-muted text-muted-foreground border-0">
+                            Rek. {i + 2}
+                          </Badge>
+                          <span className="text-[10px] font-bold text-muted-foreground">Skor {rec.score}</span>
+                        </div>
+                        <div className="text-xs text-foreground font-medium truncate">
+                          {rec.teamA.map(getShortName).join(" & ")}
+                          <span className="text-muted-foreground mx-1.5">vs</span>
+                          {rec.teamB.map(getShortName).join(" & ")}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground truncate">{rec.explanation}</p>
+                      </div>
                       <Button
-                        onClick={handleGenerateAll}
-                        disabled={isGeneratingAll}
-                        className="w-full bg-[#0F172A] hover:bg-[#1E293B] text-[#F8FAFC] font-bold h-11 text-xs tracking-wider uppercase rounded-xl flex items-center justify-center gap-2"
+                        onClick={() => handleSelectRecommendation(rec)}
+                        size="sm"
+                        className="shrink-0 bg-primary/10 hover:bg-primary/20 text-primary border-0 font-bold px-3 h-8 text-[11px] rounded-lg"
                       >
-                        <Zap className="w-3.5 h-3.5 fill-current" />
-                        {isGeneratingAll
-                          ? "Generating..."
-                          : `Generate M${currentMatchId}–M${targetMatches} Sekaligus`}
-                        <ChevronRight className="w-3.5 h-3.5 ml-auto" />
+                        Pakai
                       </Button>
                     </div>
-                  )}
-
-                  <Separator className="bg-border" />
-
-                  {/* ── Alternative recommendations 2 & 3 ────────────────── */}
-                  {recommendations.length > 1 && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h5 className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-                          Pilihan Alternatif
-                        </h5>
-                        <Button
-                          variant="link"
-                          size="sm"
-                          onClick={() => setIsManualOverride(true)}
-                          className="text-xs text-muted-foreground hover:text-foreground p-0 h-auto"
-                        >
-                          Override Manual
-                        </Button>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-2">
-                        {recommendations.slice(1).map((rec, i) => (
-                          <div
-                            key={rec.id}
-                            className="bg-card border border-border rounded-xl p-3 flex items-center justify-between gap-3 hover:border-primary/30 transition-colors"
-                          >
-                            <div className="flex-1 min-w-0 space-y-1">
-                              <div className="flex items-center gap-2">
-                                <Badge className="text-[9px] font-bold bg-muted text-muted-foreground border-0">
-                                  Rek. {i + 2}
-                                </Badge>
-                                <span className="text-[10px] font-bold text-muted-foreground">
-                                  Skor {rec.score}
-                                </span>
-                              </div>
-                              <div className="text-xs text-foreground font-medium truncate">
-                                {rec.teamA.map(getPlayerNameShort).join(" & ")}
-                                <span className="text-muted-foreground mx-1.5">vs</span>
-                                {rec.teamB.map(getPlayerNameShort).join(" & ")}
-                              </div>
-                              <p className="text-[10px] text-muted-foreground truncate">{rec.explanation}</p>
-                            </div>
-                            <Button
-                              onClick={() => handleSelectRecommendation(rec)}
-                              size="sm"
-                              className="shrink-0 bg-primary/10 hover:bg-primary/20 text-primary border-0 font-bold px-3 h-8 text-[11px] rounded-lg"
-                            >
-                              Pakai
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Regenerate */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const { recommendations: recs, warnings: warns } = generateRecommendations(
-                        players, matches, currentMatchId, targetMatches
-                      );
-                      setRecommendations(recs);
-                      setWarnings(warns);
-                      toast.success("Rekomendasi diperbarui!");
-                    }}
-                    className="w-full border-border text-muted-foreground text-xs h-9 flex items-center justify-center gap-1.5 hover:bg-muted"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    Perbarui Rekomendasi
-                  </Button>
-                </>
+                  ))}
+                </div>
               )}
+
+              {/* Refresh */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const { recommendations: recs, warnings: warns } = generateRecommendations(
+                    players, matches, currentMatchId, targetMatches
+                  );
+                  setRecommendations(recs);
+                  setWarnings(warns);
+                  toast.success("Rekomendasi diperbarui!");
+                }}
+                className="w-full border-border text-muted-foreground text-xs h-9 flex items-center justify-center gap-1.5 hover:bg-muted"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Refresh Rekomendasi
+              </Button>
             </div>
           )}
         </CardContent>
