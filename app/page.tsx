@@ -541,14 +541,12 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {[
               {
-                text: "Aplikasi penjadwalan cerdas DaySmash adil banget. Rotasinya pas, gak ada pemain yang didiamkan kelamaan nunggu di pinggir lapangan. Level lawannya juga pas seimbang!",
-                author: "Rohman",
-                role: "Member Aktif - Lvl 4",
+                text: "Seruu eyy mabar di DaySmash, makin sukses terus dakss!!, letsgo minggu depan main deui atuh!",
+                author: "Abdul",
               },
               {
-                text: "Sistem kasir sewa lapangan dan shuttlecocknya transparan banget di spreadsheet. Kita bayar flat Rp 12.000 dan dihitung kok Rp 2.000 per pakai. Benar-benar profesional untuk kelas komunitas.",
-                author: "Alvin",
-                role: "Member Sejak 2024 - Lvl 4",
+                text: "Ternyata ada mabar murah pisan ey wkwk, masuk budget mahasiswa, tempatnya juga enakeun buat latihan, semoga makin rame dan makin banyak yang gabung yaa!",
+                author: "Itis",
               },
             ].map((t, idx) => (
               <Card
